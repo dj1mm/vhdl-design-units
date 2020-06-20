@@ -304,7 +304,7 @@ class vhdl_indexer
 
     async index(progress: vscode.Progress<{message?: string; increment?: number}>)
     {
-        progress.report({ increment: 0 });
+        progress.report({ increment: 0, message: `looking for vhdl files` });
 
         this.units = [];
         let f = new Set<string>();
@@ -322,7 +322,7 @@ class vhdl_indexer
             n++;
             if (--i == 100) {
                 i = 100;
-                progress.report({ increment: 25 + Math.floor(n/f.size*100), message: `parsing file ${n} / ${f.size}` });
+                progress.report({ increment: 1, message: `parsing file ${n} / ${f.size}` });
             }
             this.skim_through(_f);
             this.files.push(_f);
@@ -358,6 +358,7 @@ class vhdl_indexer
         catch (e)
         {
             console.log(e)
+            return [];
         }
         return result;
     }
