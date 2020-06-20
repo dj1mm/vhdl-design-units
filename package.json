@@ -24,7 +24,21 @@
 				"command": "find-vhdl-entities.findDesignUnit",
                 "title": "Find design unit"
 			}
-		]
+		],
+		"configuration": {
+			"title": "Find vhdl units",
+			"properties": {
+				"findVhdlUnits.searchTheseDirectories": {
+					"type": "array",
+					"default": [],
+					"description": "When indexing vhdl files, we will search for files from these directories",
+					"items": {
+						"type": "string",
+						"description": "Directory to index"
+					}
+				}
+			}
+		}
 	},
 	"scripts": {
 		"vscode:prepublish": "yarn run compile",

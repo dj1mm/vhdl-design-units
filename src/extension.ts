@@ -1,4 +1,5 @@
 
+import * as path from 'path'
 import * as vscode from 'vscode';
 import { promisify } from 'util';
 import { realpath, stat, readdir, readFileSync } from 'fs';
@@ -334,30 +335,30 @@ class vhdl_indexer
     private async get_files_from(directory: string, filter: string): Promise<string[]>
     {
         const result: string[] = [];
-        const entries = await promisify(readdir)(directory);
+        try
+        {
+            const entries = await promisify(readdir)(directory);
 
-        await Promise.all(entries.map(async entry => {
-            try
-            {
-                const path = directory + '/' + entry;
-                const file = await promisify(stat)(path);
+            await Promise.all(entries.map(async entry => {
+                const p = path.join(directory, entry)
+                const file = await promisify(stat)(p);
                 if (file.isFile())
                 {
                     if (entry.match(filter))
                     {
-                        result.push(path);
+                        result.push(p);
                     }
                 }
                 else
                 {
-                    result.push(... await this.get_files_from(path, filter));
+                    result.push(... await this.get_files_from(p, filter));
                 }
-            }
-            catch (e)
-            {
-                console.log(e);
-            }
-        }));
+            }));
+        }
+        catch (e)
+        {
+            console.log(e)
+        }
         return result;
     }
 
@@ -369,8 +370,6 @@ class vhdl_indexer
 
         let p = new parser(file, txt, txt.length);
         this.units = this.units.concat(p.parse());
-
-        console.log('Parsing '+ file);
     }
 }
 
@@ -383,9 +382,26 @@ export function activate(context: vscode.ExtensionContext)
     let d1 = vscode.commands.registerCommand('find-vhdl-entities.index', async () => {
 
         show_indexing_progress_in_statusbar();
-        const f = vscode.workspace.workspaceFolders;
-        const folders = (f ?? []).map(_f => _f.uri.fsPath);
-        indexer.directories = folders;
+
+        let configuration = vscode.workspace.getConfiguration('findVhdlUnits');
+        indexer.directories = [];
+
+        if (configuration.searchTheseDirectories.length == 0)
+        {
+            const result = await vscode.window.showQuickPick(['Yes. This may take a while', 'No'], {
+                placeHolder: 'Directories to index not configured. Do you want to index the full workspace?'
+            });
+            const f = vscode.workspace.workspaceFolders;
+            const folders = (f ?? []).map(_f => _f.uri.fsPath);
+            if (result == 'Yes. This may take a while')
+                indexer.directories = folders;
+            else
+                return;
+        }
+        else
+        {
+            indexer.directories = configuration.searchTheseDirectories;
+        }
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
@@ -415,25 +431,31 @@ export function activate(context: vscode.ExtensionContext)
         if (indexer.units.length == 0)
             quick_pick_design_unit.placeholder = "No units found. Perhaps try to index them";
         else
-            quick_pick_design_unit.placeholder = "Design unit name";
+            quick_pick_design_unit.placeholder = "Name your design unit";
 
         quick_pick_design_unit.onDidChangeSelection(selection => {
             if (selection[0] && selection[0].unit.file)
             {
+                let file = selection[0].unit.file;
+                let line = selection[0].unit.line;
                 vscode.workspace
-                    .openTextDocument(vscode.Uri.file(selection[0].unit.file))
-                    .then((document) => {
+                    .openTextDocument(vscode.Uri.file(file))
+                    .then(
+                    okay => {
                         vscode.window
-                            .showTextDocument(document)
-                            .then(editor => {
-                                let pos = new vscode.Position(selection[0].unit.line, 0);
-                                editor.selections = [ new vscode.Selection(pos, pos)];
-                                let range = new vscode.Range(pos, pos);
-                                editor.revealRange(range);
-                            })
+                        .showTextDocument(okay)
+                        .then(editor => {
+                            let pos = new vscode.Position(line, 0);
+                            editor.selections = [ new vscode.Selection(pos, pos)];
+                            let range = new vscode.Range(pos, pos);
+                            editor.revealRange(range);
+                        })
+                    },
+                    error => {
+                        vscode.window.showErrorMessage(`Could not open ${file}`);
                     });
 
-                console.log(`Chosen ${selection[0].unit.file}`);
+                console.log(`Chosen ${file}`);
                 quick_pick_design_unit.hide();
             }
         });
