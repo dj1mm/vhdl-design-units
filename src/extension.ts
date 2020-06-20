@@ -3,6 +3,9 @@ import * as vscode from 'vscode';
 import { promisify } from 'util';
 import { realpath, stat, readdir, readFileSync } from 'fs';
 
+let number_of_indexed_statusbar_item: vscode.StatusBarItem;
+let indexer: vhdl_indexer;
+
 enum design_type { entity, architecture, package, package_body, configuration };
 interface design_unit
 {
@@ -267,7 +270,11 @@ class vhdl_indexer
 {
     private units: design_unit[] = [];
     private files: string[] = [];
-    constructor(public directories: string[]) {}
+    public directories: string[] = [];
+
+    constructor() {}
+
+    get_number_of_units(): number { return this.units.length; }
 
     async index(progress: vscode.Progress<{message?: string; increment?: number}>)
     {
@@ -344,13 +351,16 @@ class vhdl_indexer
 
 export function activate(context: vscode.ExtensionContext)
 {
-    let indexer: vhdl_indexer;
+    indexer = new vhdl_indexer();
+
     console.log('Activate find-vhdl-entities');
 
     let d1 = vscode.commands.registerCommand('find-vhdl-entities.index', async () => {
+
+        show_indexing_progress_in_statusbar();
         const f = vscode.workspace.workspaceFolders;
         const folders = (f ?? []).map(_f => _f.uri.fsPath);
-        indexer = new vhdl_indexer(folders);
+        indexer.directories = folders;
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
@@ -359,6 +369,7 @@ export function activate(context: vscode.ExtensionContext)
         }, async (progress, token) => {
 
             await indexer.index(progress);
+            show_number_of_indexed_units_in_statusbar();
 
 			const p = new Promise(resolve => {
 				setTimeout(() => {
@@ -377,7 +388,23 @@ export function activate(context: vscode.ExtensionContext)
     });
     context.subscriptions.push(d2);
 
+    number_of_indexed_statusbar_item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
+    number_of_indexed_statusbar_item.command = 'find-vhdl-entities.findDesignUnit';
+    context.subscriptions.push(number_of_indexed_statusbar_item);
 
+    show_number_of_indexed_units_in_statusbar();
+}
+
+function show_number_of_indexed_units_in_statusbar(): void
+{
+    number_of_indexed_statusbar_item.text = `${indexer.get_number_of_units()} units indexed`;
+    number_of_indexed_statusbar_item.show();
+}
+
+function show_indexing_progress_in_statusbar()
+{
+    number_of_indexed_statusbar_item.text = `Indexing design units ...`;
+    number_of_indexed_statusbar_item.show();
 }
 
 // this method is called when your extension is deactivated
