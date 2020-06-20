@@ -10,6 +10,7 @@ enum design_type { entity, architecture, package, package_body, configuration };
 interface design_unit
 {
     type: design_type;
+    file: string;
     line: number;
     identifier: string;
     entity?: string;
@@ -210,7 +211,7 @@ class parser
                     break;
                 let en = this.current_text;
 
-                result.push({ type: design_type.entity, line: ln, identifier: en });
+                result.push({ type: design_type.entity, file: this.file, line: ln, identifier: en });
                 break;
             case token.architecture:
                 if (this.lex() != token.identifier)
@@ -221,7 +222,7 @@ class parser
                 if (this.lex() != token.identifier)
                     break;
                 let ae = this.current_text;
-                result.push({ type: design_type.architecture, line: ln, identifier: an, entity: ae });
+                result.push({ type: design_type.architecture, file: this.file, line: ln, identifier: an, entity: ae });
                 break;
             case token.package:
                 let tk = this.lex();
@@ -230,14 +231,14 @@ class parser
                     if (this.lex() != token.identifier)
                         break;
                     let pb = this.current_text;
-                    result.push({ type: design_type.package_body, line: ln, identifier: pb });
+                    result.push({ type: design_type.package_body, file: this.file, line: ln, identifier: pb });
                 }
                 else
                 {
                     if (tk != token.identifier)
                         break;
                     let pn = this.current_text;
-                    result.push({ type: design_type.package_body, line: ln, identifier: pn });
+                    result.push({ type: design_type.package_body, file: this.file, line: ln, identifier: pn });
                 }
                 break;
             case token.configuration:
@@ -249,7 +250,7 @@ class parser
                 if (this.lex() != token.identifier)
                     break;
                     let ca = this.current_text;
-                    result.push({ type: design_type.configuration, line: ln, identifier: cn, entity: ca });
+                    result.push({ type: design_type.configuration, file: this.file, line: ln, identifier: cn, entity: ca });
                 
                 break;
             case token.library:
@@ -268,13 +269,11 @@ class parser
 
 class vhdl_indexer
 {
-    private units: design_unit[] = [];
+    public units: design_unit[] = [];
     private files: string[] = [];
     public directories: string[] = [];
 
     constructor() {}
-
-    get_number_of_units(): number { return this.units.length; }
 
     async index(progress: vscode.Progress<{message?: string; increment?: number}>)
     {
@@ -384,6 +383,32 @@ export function activate(context: vscode.ExtensionContext)
     context.subscriptions.push(d1);
 
     let d2 = vscode.commands.registerCommand('find-vhdl-entities.findDesignUnit', () => {
+        const quick_pick_design_unit = vscode.window.createQuickPick();
+        quick_pick_design_unit.items = indexer.units.map(u => {
+            let label = "";
+            if (u.type == design_type.entity)
+                label = `entity ${u.identifier}`;
+            else if (u.type == design_type.architecture)
+                label = `architecture ${u.identifier} of ${u.entity}`;
+            else if (u.type == design_type.package)
+                label = `package ${u.identifier}`;
+            else if (u.type == design_type.package_body)
+                label = `package body ${u.identifier}`;
+            else if (u.type == design_type.configuration)
+                label = `configuration ${u.identifier}`;
+
+            let description = `@${u.file}:${u.line}`;
+
+            return { label, description };
+        })
+        quick_pick_design_unit.onDidChangeSelection(selection => {
+            if (selection[0]) {
+                console.log(`Chose ${selection[0].description}`);
+                quick_pick_design_unit.hide();
+            }
+        });
+        quick_pick_design_unit.onDidHide(() => quick_pick_design_unit.dispose());
+        quick_pick_design_unit.show();
         vscode.window.showInformationMessage('Find design unit');
     });
     context.subscriptions.push(d2);
@@ -397,7 +422,7 @@ export function activate(context: vscode.ExtensionContext)
 
 function show_number_of_indexed_units_in_statusbar(): void
 {
-    number_of_indexed_statusbar_item.text = `${indexer.get_number_of_units()} units indexed`;
+    number_of_indexed_statusbar_item.text = `${indexer.units.length} units indexed`;
     number_of_indexed_statusbar_item.show();
 }
 
