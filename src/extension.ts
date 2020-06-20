@@ -277,7 +277,7 @@ class vhdl_indexer
         let f = new Set<string>();
         await Promise.all(this.directories.map(async (directory) => {
 
-            console.log(`Finding files .vhdl?$ from ${directory}`);
+            console.log(`finding files from ${directory}`);
 
             const files = await this.get_files_from(directory, '\.vhdl?$');
             return (await Promise.all(files.map(file => promisify(realpath)(file)))).forEach(file => f.add(file));
@@ -289,11 +289,14 @@ class vhdl_indexer
             n++;
             if (--i == 100) {
                 i = 100;
-                progress.report({ increment: 25 + Math.floor(n/f.size*100), message: `Parsing file ${n} / ${f.size}` });
+                progress.report({ increment: 25 + Math.floor(n/f.size*100), message: `parsing file ${n} / ${f.size}` });
             }
             this.skim_through(_f);
             this.files.push(_f);
         }
+
+        progress.report({ increment: 99, message: `found ${this.units.length} design units` });
+
     }
 
     private async get_files_from(directory: string, filter: string): Promise<string[]>
@@ -351,13 +354,19 @@ export function activate(context: vscode.ExtensionContext)
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: "Indexing vhdl design units",
+            title: "Index",
             cancellable: false
         }, async (progress, token) => {
 
             await indexer.index(progress);
 
-            return 0;
+			const p = new Promise(resolve => {
+				setTimeout(() => {
+					resolve();
+				}, 10000);
+			});
+
+            return p;
         });
 
     });
