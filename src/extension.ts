@@ -16,6 +16,30 @@ interface design_unit
     entity?: string;
 }
 
+class design_item implements vscode.QuickPickItem
+{
+    label: string;
+    description: string;
+
+    constructor(public unit: design_unit)
+    {
+        if (unit.type == design_type.entity)
+            this.label = `entity ${unit.identifier}`;
+        else if (unit.type == design_type.architecture)
+            this.label = `architecture ${unit.identifier} of ${unit.entity}`;
+        else if (unit.type == design_type.package)
+            this.label = `package ${unit.identifier}`;
+        else if (unit.type == design_type.package_body)
+            this.label = `package body ${unit.identifier}`;
+        else if (unit.type == design_type.configuration)
+            this.label = `configuration ${unit.identifier}`;
+        else
+            this.label = ""
+
+        this.description = `@${unit.file}:${unit.line+1}`;
+    }
+}
+
 enum token { invalid, eof, entity, architecture, of, package, body, configuration, library, use, identifier };
 class parser
 {
@@ -204,8 +228,10 @@ class parser
 
         while (this.current_token != token.eof)
         {
+            this.lex();
             let ln = this.current_line;
-            switch (this.lex()) {
+
+            switch (this.current_token) {
             case token.entity:
                 if (this.lex() != token.identifier)
                     break;
@@ -344,7 +370,7 @@ class vhdl_indexer
         let p = new parser(file, txt, txt.length);
         this.units = this.units.concat(p.parse());
 
-        console.log('Reading through '+ file);
+        console.log('Parsing '+ file);
     }
 }
 
@@ -383,33 +409,36 @@ export function activate(context: vscode.ExtensionContext)
     context.subscriptions.push(d1);
 
     let d2 = vscode.commands.registerCommand('find-vhdl-entities.findDesignUnit', () => {
-        const quick_pick_design_unit = vscode.window.createQuickPick();
-        quick_pick_design_unit.items = indexer.units.map(u => {
-            let label = "";
-            if (u.type == design_type.entity)
-                label = `entity ${u.identifier}`;
-            else if (u.type == design_type.architecture)
-                label = `architecture ${u.identifier} of ${u.entity}`;
-            else if (u.type == design_type.package)
-                label = `package ${u.identifier}`;
-            else if (u.type == design_type.package_body)
-                label = `package body ${u.identifier}`;
-            else if (u.type == design_type.configuration)
-                label = `configuration ${u.identifier}`;
+        const quick_pick_design_unit = vscode.window.createQuickPick<design_item>();
+        quick_pick_design_unit.items = indexer.units.map(u => new design_item(u));
 
-            let description = `@${u.file}:${u.line}`;
+        if (indexer.units.length == 0)
+            quick_pick_design_unit.placeholder = "No units found. Perhaps try to index them";
+        else
+            quick_pick_design_unit.placeholder = "Design unit name";
 
-            return { label, description };
-        })
         quick_pick_design_unit.onDidChangeSelection(selection => {
-            if (selection[0]) {
-                console.log(`Chose ${selection[0].description}`);
+            if (selection[0] && selection[0].unit.file)
+            {
+                vscode.workspace
+                    .openTextDocument(vscode.Uri.file(selection[0].unit.file))
+                    .then((document) => {
+                        vscode.window
+                            .showTextDocument(document)
+                            .then(editor => {
+                                let pos = new vscode.Position(selection[0].unit.line, 0);
+                                editor.selections = [ new vscode.Selection(pos, pos)];
+                                let range = new vscode.Range(pos, pos);
+                                editor.revealRange(range);
+                            })
+                    });
+
+                console.log(`Chosen ${selection[0].unit.file}`);
                 quick_pick_design_unit.hide();
             }
         });
         quick_pick_design_unit.onDidHide(() => quick_pick_design_unit.dispose());
         quick_pick_design_unit.show();
-        vscode.window.showInformationMessage('Find design unit');
     });
     context.subscriptions.push(d2);
 
