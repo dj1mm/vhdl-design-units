@@ -132,7 +132,7 @@ class parser
             default:
                 this._position++;
                 break;
-                
+
             }
         }
 
@@ -275,7 +275,7 @@ class parser
                     let pn = this.current_text;
                     if (this.lex() != token.is)
                         break;
-                    result.push({ type: design_type.package_body, file: this.file, line: ln, identifier: pn });
+                    result.push({ type: design_type.package, file: this.file, line: ln, identifier: pn });
                 }
                 break;
             case token.configuration:
@@ -430,11 +430,11 @@ export function activate(context: vscode.ExtensionContext)
             await indexer.index(progress, token);
             show_number_of_indexed_units_in_statusbar();
 
-			const p = new Promise(resolve => {
-				setTimeout(() => {
-					resolve();
-				}, 10000);
-			});
+            const p = new Promise(resolve => {
+                setTimeout(() => {
+                    resolve();
+                }, 10000);
+            });
 
             return p;
         });
