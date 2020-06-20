@@ -269,22 +269,28 @@ class vhdl_indexer
     private files: string[] = [];
     constructor(public directories: string[]) {}
 
-    async index(): Promise<void>
+    async index(progress: vscode.Progress<{message?: string; increment?: number}>)
     {
+        progress.report({ increment: 0 });
+
         this.units = [];
         let f = new Set<string>();
         await Promise.all(this.directories.map(async (directory) => {
 
-            console.log(`Find files .vhdl?$ from ${directory}`);
+            console.log(`Finding files .vhdl?$ from ${directory}`);
 
             const files = await this.get_files_from(directory, '\.vhdl?$');
             return (await Promise.all(files.map(file => promisify(realpath)(file)))).forEach(file => f.add(file));
         }));
 
-        console.log(`Found ${f.size} files`);
-
+        let i = 1, n = 0;
         for (const _f of f)
         {
+            n++;
+            if (--i == 100) {
+                i = 100;
+                progress.report({ increment: 25 + Math.floor(n/f.size*100), message: `Parsing file ${n} / ${f.size}` });
+            }
             this.skim_through(_f);
             this.files.push(_f);
         }
@@ -342,9 +348,18 @@ export function activate(context: vscode.ExtensionContext)
         const f = vscode.workspace.workspaceFolders;
         const folders = (f ?? []).map(_f => _f.uri.fsPath);
         indexer = new vhdl_indexer(folders);
-        await indexer.index();
 
-        vscode.window.showInformationMessage('Indexing');
+        vscode.window.withProgress({
+            location: vscode.ProgressLocation.Notification,
+            title: "Indexing vhdl design units",
+            cancellable: false
+        }, async (progress, token) => {
+
+            await indexer.index(progress);
+
+            return 0;
+        });
+
     });
     context.subscriptions.push(d1);
 
