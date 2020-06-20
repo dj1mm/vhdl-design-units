@@ -1,65 +1,41 @@
-# find-vhdl-entities README
 
-This is the README for your extension "find-vhdl-entities". After writing up a brief description, we recommend including the following sections.
+# I need an easy way to work with vhdl design units
 
-## Features
+If this applies to you, welcome. Otherwise, you are still welcomed!
 
-Describe specific features of your extension including screenshots of your extension in action. Image paths are relative to this README file.
+This extension aims at making it easier to work with vhdl design units in large
+vhdl projects.
 
-For example if there is an image subfolder under your extension project workspace:
+## What it is and what it isn't
 
-\!\[feature X\]\(images/feature-x.png\)
+Vhdl design units (the extension) currently indexes vhdl files it is told to,
+and allows you to find vhdl design units in a Ctrl-P fashion. All done with the
+help of a very rudimentary typescript parser. So no extra executables to
+install to reap the benefits of this extension.
 
-> Tip: Many popular extensions utilize animations. This is an excellent way to show off your extension! We recommend short, focused animations that are easy to follow.
+This extension is not a vhdl language server.
 
-## Requirements
+Features:
 
-If you have any requirements or dependencies, add a section describing those and how to install and configure them.
+- finds vhdl primary units: entity, package and configuration declarations
+- finds vhdl secondary units: architecture and package bodies
+- specify which folders to search for vhdl files
+- parser is vhdl' typo friendly, but not rigorously tested
 
-## Extension Settings
+## Usage
 
-Include if your extension adds any VS Code settings through the `contributes.configuration` extension point.
+Configuration
 
-For example:
+- Search These Directories
 
-This extension contributes the following settings:
+When indexing vhdl files, the extension will search for files from the folders
+specified there. Do only put valid folders. Why would you do otherwise? Hope it
+all goes fine ;)
 
-* `myExtension.enable`: enable/disable this extension
-* `myExtension.thing`: set to `blah` to do something
+Drive the extension with two commands:
 
-## Known Issues
-
-Calling out known issues can help limit users opening duplicate issues against your extension.
-
-## Release Notes
-
-Users appreciate release notes as you update your extension.
-
-### 1.0.0
-
-Initial release of ...
-
-### 1.0.1
-
-Fixed issue #.
-
-### 1.1.0
-
-Added features X, Y, and Z.
-
------------------------------------------------------------------------------------------------------------
-
-## Working with Markdown
-
-**Note:** You can author your README using Visual Studio Code.  Here are some useful editor keyboard shortcuts:
-
-* Split the editor (`Cmd+\` on macOS or `Ctrl+\` on Windows and Linux)
-* Toggle preview (`Shift+CMD+V` on macOS or `Shift+Ctrl+V` on Windows and Linux)
-* Press `Ctrl+Space` (Windows, Linux) or `Cmd+Space` (macOS) to see a list of Markdown snippets
-
-### For more information
-
-* [Visual Studio Code's Markdown Support](http://code.visualstudio.com/docs/languages/markdown)
-* [Markdown Syntax Reference](https://help.github.com/articles/markdown-basics/)
+- Index design units
+- Find design unit
 
 **Enjoy!**
+

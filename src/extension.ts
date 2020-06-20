@@ -469,7 +469,7 @@ export function activate(context: vscode.ExtensionContext)
                             editor.revealRange(range);
                         })
                     },
-                    error => {
+                    _ => {
                         vscode.window.showErrorMessage(`Could not open ${file}`);
                     });
 

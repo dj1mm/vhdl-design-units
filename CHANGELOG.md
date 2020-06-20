@@ -1,9 +1,12 @@
 # Change Log
 
-All notable changes to the "find-vhdl-entities" extension will be documented in this file.
-
+Find ***most ~~all~~*** notable changes to the "find-vhdl-units" extension in
+this file.
 Check [Keep a Changelog](http://keepachangelog.com/) for recommendations on how to structure this file.
 
 ## [Unreleased]
 
-- Initial release
+- Scan vhdl files, and find all design units declared there
+- Specify the vhdl files as a vscode configuration
+- Tested on large vhdl projects
+
