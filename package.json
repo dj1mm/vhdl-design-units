@@ -1,7 +1,7 @@
 {
-    "name": "find-vhdl-entities",
-    "displayName": "find-vhdl-entities",
-    "description": "Find vhdl entities",
+    "name": "vhdl-design-units",
+    "displayName": "vhdl-design-units",
+    "description": "Work with vhdl design units",
     "version": "0.0.1",
     "engines": {
         "vscode": "^1.46.0"
@@ -10,25 +10,25 @@
         "Other"
     ],
     "activationEvents": [
-        "onCommand:find-vhdl-entities.index",
-        "onCommand:find-vhdl-entities.findDesignUnit"
+        "onCommand:vhdl-design-units.index",
+        "onCommand:vhdl-design-units.find"
     ],
     "main": "./out/extension.js",
     "contributes": {
         "commands": [
             {
-                "command": "find-vhdl-entities.index",
-                "title": "Index vhdl files"
+                "command": "vhdl-design-units.index",
+                "title": "Index design units"
             },
             {
-                "command": "find-vhdl-entities.findDesignUnit",
+                "command": "vhdl-design-units.find",
                 "title": "Find design unit"
             }
         ],
         "configuration": {
             "title": "Find vhdl units",
             "properties": {
-                "findVhdlUnits.searchTheseDirectories": {
+                "vhdlDesignUnits.searchTheseDirectories": {
                     "type": "array",
                     "default": [],
                     "description": "When indexing vhdl files, we will search for files from these directories",

@@ -342,7 +342,7 @@ class vhdl_indexer
             this.files.push(_f);
         }
 
-        progress.report({ increment: 99, message: `found ${this.units.length} design units` });
+        progress.report({ increment: 99, message: `done. Found ${this.units.length} design units` });
 
     }
 
@@ -395,13 +395,13 @@ export function activate(context: vscode.ExtensionContext)
 {
     indexer = new vhdl_indexer();
 
-    console.log('Activate find-vhdl-entities');
+    console.log('Activate vhdl-design-units');
 
-    let d1 = vscode.commands.registerCommand('find-vhdl-entities.index', async () => {
+    let d1 = vscode.commands.registerCommand('vhdl-design-units.index', async () => {
 
         show_indexing_progress_in_statusbar();
 
-        let configuration = vscode.workspace.getConfiguration('findVhdlUnits');
+        let configuration = vscode.workspace.getConfiguration('vhdlDesignUnits');
         indexer.directories = [];
 
         if (configuration.searchTheseDirectories.length == 0)
@@ -442,7 +442,7 @@ export function activate(context: vscode.ExtensionContext)
     });
     context.subscriptions.push(d1);
 
-    let d2 = vscode.commands.registerCommand('find-vhdl-entities.findDesignUnit', () => {
+    let d2 = vscode.commands.registerCommand('vhdl-design-units.find', () => {
         const quick_pick_design_unit = vscode.window.createQuickPick<design_item>();
         quick_pick_design_unit.items = indexer.units.map(u => new design_item(u));
 
@@ -483,7 +483,7 @@ export function activate(context: vscode.ExtensionContext)
     context.subscriptions.push(d2);
 
     number_of_indexed_statusbar_item = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
-    number_of_indexed_statusbar_item.command = 'find-vhdl-entities.findDesignUnit';
+    number_of_indexed_statusbar_item.command = 'vhdl-design-units.find';
     context.subscriptions.push(number_of_indexed_statusbar_item);
 
     show_number_of_indexed_units_in_statusbar();
@@ -504,5 +504,5 @@ function show_indexing_progress_in_statusbar()
 // this method is called when your extension is deactivated
 export function deactivate()
 {
-    console.log('Deactivate find-vhdl-entities');
+    console.log('Deactivate vhdl-design-units');
 }
