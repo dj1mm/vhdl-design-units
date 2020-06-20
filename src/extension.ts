@@ -1,27 +1,93 @@
-// The module 'vscode' contains the VS Code extensibility API
-// Import the module and reference it with the alias vscode in your code below
+
 import * as vscode from 'vscode';
+import { promisify } from 'util';
+import { realpath, stat, readdir, readFileSync } from 'fs';
 
-// this method is called when your extension is activated
-// your extension is activated the very first time the command is executed
-export function activate(context: vscode.ExtensionContext) {
+class vhdl_indexer
+{
+	private files: string[] = [];
+	constructor(public directories: string[]) {}
 
-	// Use the console to output diagnostic information (console.log) and errors (console.error)
-	// This line of code will only be executed once when your extension is activated
-	console.log('Congratulations, your extension "find-vhdl-entities" is now active!');
+	async index(): Promise<void>
+	{
+		let f = new Set<string>();
+		await Promise.all(this.directories.map(async (directory) => {
+			const files = await this.get_files_from(directory, '\.vhdl?$');
+			return (await Promise.all(files.map(file => promisify(realpath)(file)))).forEach(file => f.add(file));
+		}))
 
-	// The command has been defined in the package.json file
-	// Now provide the implementation of the command with registerCommand
-	// The commandId parameter must match the command field in package.json
-	let disposable = vscode.commands.registerCommand('find-vhdl-entities.helloWorld', () => {
-		// The code you place here will be executed every time your command is executed
+		for (const _f of f)
+		{
+			this.skim_through(_f);
+			this.files.push(_f);
+		}
+	}
 
-		// Display a message box to the user
-		vscode.window.showInformationMessage('Hello World from find-vhdl-entities!');
+	private async get_files_from(directory: string, filter: string): Promise<string[]>
+	{
+		const result: string[] = [];
+		const entries = await promisify(readdir)(directory);
+
+		await Promise.all(entries.map(async entry => {
+			try
+			{
+				const path = directory + '/' + entry;
+				const file = await promisify(stat)(path);
+				if (file.isFile())
+				{
+					if (entry.match(filter))
+					{
+						result.push(path);
+					}
+				}
+				else
+				{
+					result.push(... await this.get_files_from(path, filter));
+				}
+			}
+			catch (e)
+			{
+				console.log(e);
+			}
+		}));
+		return result;
+	}
+
+	private skim_through(file: string): void
+	{
+		const txt = readFileSync(file, { encoding: 'utf8' });
+		if (!txt)
+			return;
+
+		console.log('Skimming through '+ file);
+	}
+}
+
+export function activate(context: vscode.ExtensionContext)
+{
+	let indexer: vhdl_indexer;
+	console.log('Activate find-vhdl-entities');
+
+	let d1 = vscode.commands.registerCommand('find-vhdl-entities.index', async () => {
+		const f = vscode.workspace.workspaceFolders;
+        const folders = (f ?? []).map(_f => _f.uri.fsPath);
+		indexer = new vhdl_indexer(folders);
+		await indexer.index();
+
+		vscode.window.showInformationMessage('Indexing');
 	});
+	context.subscriptions.push(d1);
 
-	context.subscriptions.push(disposable);
+	let d2 = vscode.commands.registerCommand('find-vhdl-entities.findDesignUnit', () => {
+		vscode.window.showInformationMessage('Find design unit');
+	});
+	context.subscriptions.push(d2);
+
+
 }
 
 // this method is called when your extension is deactivated
-export function deactivate() {}
+export function deactivate()
+{
+	console.log('Deactivate find-vhdl-entities');
+}

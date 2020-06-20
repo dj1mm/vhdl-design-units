@@ -10,14 +10,19 @@
 		"Other"
 	],
 	"activationEvents": [
-        "onCommand:find-vhdl-entities.helloWorld"
+        "onCommand:find-vhdl-entities.index",
+        "onCommand:find-vhdl-entities.findDesignUnit"
 	],
 	"main": "./out/extension.js",
 	"contributes": {
 		"commands": [
 			{
-				"command": "find-vhdl-entities.helloWorld",
-                "title": "Hello World"
+				"command": "find-vhdl-entities.index",
+                "title": "Index vhdl files"
+			},
+			{
+				"command": "find-vhdl-entities.findDesignUnit",
+                "title": "Find design unit"
 			}
 		]
 	},
