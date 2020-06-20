@@ -302,7 +302,7 @@ class vhdl_indexer
 
     constructor() {}
 
-    async index(progress: vscode.Progress<{message?: string; increment?: number}>)
+    async index(progress: vscode.Progress<{message?: string; increment?: number}>, cancel: vscode.CancellationToken)
     {
         progress.report({ increment: 0, message: `looking for vhdl files` });
 
@@ -312,17 +312,20 @@ class vhdl_indexer
 
             console.log(`finding files from ${directory}`);
 
-            const files = await this.get_files_from(directory, '\.vhdl?$');
+            const files = await this.get_files_from(directory, '\.vhdl?$', cancel);
             return (await Promise.all(files.map(file => promisify(realpath)(file)))).forEach(file => f.add(file));
         }));
 
-        let i = 1, n = 0;
+        let i = 1, n = 0, s = f.size;
         for (const _f of f)
         {
+            if (cancel.isCancellationRequested)
+                break;
+
             n++;
             if (--i == 100) {
                 i = 100;
-                progress.report({ increment: 1, message: `parsing file ${n} / ${f.size}` });
+                progress.report({ increment: 1, message: `parsing file ${n} / ${s}` });
             }
             this.skim_through(_f);
             this.files.push(_f);
@@ -332,7 +335,7 @@ class vhdl_indexer
 
     }
 
-    private async get_files_from(directory: string, filter: string): Promise<string[]>
+    private async get_files_from(directory: string, filter: string, cancel: vscode.CancellationToken): Promise<string[]>
     {
         const result: string[] = [];
         try
@@ -340,6 +343,9 @@ class vhdl_indexer
             const entries = await promisify(readdir)(directory);
 
             await Promise.all(entries.map(async entry => {
+                if (cancel.isCancellationRequested)
+                    return;
+
                 const p = path.join(directory, entry)
                 const file = await promisify(stat)(p);
                 if (file.isFile())
@@ -351,7 +357,7 @@ class vhdl_indexer
                 }
                 else
                 {
-                    result.push(... await this.get_files_from(p, filter));
+                    result.push(... await this.get_files_from(p, filter, cancel));
                 }
             }));
         }
@@ -406,11 +412,11 @@ export function activate(context: vscode.ExtensionContext)
 
         vscode.window.withProgress({
             location: vscode.ProgressLocation.Notification,
-            title: "Index",
-            cancellable: false
+            title: "Indexer",
+            cancellable: true
         }, async (progress, token) => {
 
-            await indexer.index(progress);
+            await indexer.index(progress, token);
             show_number_of_indexed_units_in_statusbar();
 
 			const p = new Promise(resolve => {
