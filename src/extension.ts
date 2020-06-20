@@ -3,6 +3,15 @@ import * as vscode from 'vscode';
 import { promisify } from 'util';
 import { realpath, stat, readdir, readFileSync } from 'fs';
 
+enum design_type { entity, architecture, package, package_body, configuration };
+interface design_unit
+{
+    type: design_type;
+    line: number;
+    identifier: string;
+    entity?: string;
+}
+
 enum token { invalid, eof, entity, architecture, of, package, body, configuration, library, use, identifier };
 class parser
 {
@@ -185,17 +194,20 @@ class parser
         }
     }
 
-    public parse(): void
+    public parse(): design_unit[]
     {
+        let result: design_unit[] = [];
+
         while (this.current_token != token.eof)
         {
+            let ln = this.current_line;
             switch (this.lex()) {
             case token.entity:
                 if (this.lex() != token.identifier)
                     break;
                 let en = this.current_text;
 
-                console.log(`entity ${en}`);
+                result.push({ type: design_type.entity, line: ln, identifier: en });
                 break;
             case token.architecture:
                 if (this.lex() != token.identifier)
@@ -206,7 +218,7 @@ class parser
                 if (this.lex() != token.identifier)
                     break;
                 let ae = this.current_text;
-                console.log(`architecteur ${an} of ${ae}`);
+                result.push({ type: design_type.architecture, line: ln, identifier: an, entity: ae });
                 break;
             case token.package:
                 let tk = this.lex();
@@ -215,14 +227,14 @@ class parser
                     if (this.lex() != token.identifier)
                         break;
                     let pb = this.current_text;
-                    console.log(`packge body ${pb}`);
+                    result.push({ type: design_type.package_body, line: ln, identifier: pb });
                 }
                 else
                 {
                     if (tk != token.identifier)
                         break;
                     let pn = this.current_text;
-                    console.log(`package ${pn}`);
+                    result.push({ type: design_type.package_body, line: ln, identifier: pn });
                 }
                 break;
             case token.configuration:
@@ -234,7 +246,7 @@ class parser
                 if (this.lex() != token.identifier)
                     break;
                     let ca = this.current_text;
-                    console.log(`configuration ${cn} of ${ca}`);
+                    result.push({ type: design_type.configuration, line: ln, identifier: cn, entity: ca });
                 
                 break;
             case token.library:
@@ -245,28 +257,37 @@ class parser
             }
 
         }
+
+        return result;
     }
 }
 
+
 class vhdl_indexer
 {
+    private units: design_unit[] = [];
     private files: string[] = [];
     constructor(public directories: string[]) {}
 
     async index(): Promise<void>
     {
+        this.units = [];
         let f = new Set<string>();
         await Promise.all(this.directories.map(async (directory) => {
+
+            console.log(`Find files .vhdl?$ from ${directory}`);
+
             const files = await this.get_files_from(directory, '\.vhdl?$');
             return (await Promise.all(files.map(file => promisify(realpath)(file)))).forEach(file => f.add(file));
-        }))
+        }));
+
+        console.log(`Found ${f.size} files`);
 
         for (const _f of f)
         {
             this.skim_through(_f);
             this.files.push(_f);
         }
-        console.log("found " + f.size + "vhdl files")
     }
 
     private async get_files_from(directory: string, filter: string): Promise<string[]>
@@ -306,7 +327,7 @@ class vhdl_indexer
             return;
 
         let p = new parser(file, txt, txt.length);
-        p.parse();
+        this.units = this.units.concat(p.parse());
 
         console.log('Reading through '+ file);
     }
