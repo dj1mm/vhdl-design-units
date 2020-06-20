@@ -41,7 +41,7 @@ class design_item implements vscode.QuickPickItem
     }
 }
 
-enum token { invalid, eof, entity, architecture, of, package, body, configuration, library, use, identifier };
+enum token { invalid, eof, entity, architecture, of, package, body, configuration, library, use, is, identifier };
 class parser
 {
     private current_token: token = token.invalid;
@@ -215,9 +215,11 @@ class parser
                     this.current_token = token.library;
                 else if (text.match(/use/i) !== null)
                     this.current_token = token.use;
+                else if (text.match(/is/i) !== null)
+                    this.current_token = token.is;
                 else
                     this.current_token = token.identifier;
-                    this.current_text = text;
+                    this.current_text = text.toLowerCase();
                 return;
             }
         }
@@ -237,6 +239,8 @@ class parser
                 if (this.lex() != token.identifier)
                     break;
                 let en = this.current_text;
+                if (this.lex() != token.is)
+                    break;
 
                 result.push({ type: design_type.entity, file: this.file, line: ln, identifier: en });
                 break;
@@ -249,6 +253,8 @@ class parser
                 if (this.lex() != token.identifier)
                     break;
                 let ae = this.current_text;
+                if (this.lex() != token.is)
+                    break;
                 result.push({ type: design_type.architecture, file: this.file, line: ln, identifier: an, entity: ae });
                 break;
             case token.package:
@@ -258,6 +264,8 @@ class parser
                     if (this.lex() != token.identifier)
                         break;
                     let pb = this.current_text;
+                    if (this.lex() != token.is)
+                        break;
                     result.push({ type: design_type.package_body, file: this.file, line: ln, identifier: pb });
                 }
                 else
@@ -265,6 +273,8 @@ class parser
                     if (tk != token.identifier)
                         break;
                     let pn = this.current_text;
+                    if (this.lex() != token.is)
+                        break;
                     result.push({ type: design_type.package_body, file: this.file, line: ln, identifier: pn });
                 }
                 break;
@@ -272,13 +282,14 @@ class parser
                 if (this.lex() != token.identifier)
                     break;
                     let cn = this.current_text;
-                    if (this.lex() != token.of)
+                if (this.lex() != token.of)
                     break;
                 if (this.lex() != token.identifier)
                     break;
-                    let ca = this.current_text;
-                    result.push({ type: design_type.configuration, file: this.file, line: ln, identifier: cn, entity: ca });
-                
+                let ca = this.current_text;
+                if (this.lex() != token.is)
+                    break;
+                result.push({ type: design_type.configuration, file: this.file, line: ln, identifier: cn, entity: ca });
                 break;
             case token.library:
             case token.use:
