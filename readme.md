@@ -32,10 +32,15 @@ When indexing vhdl files, the extension will search for files from the folders
 specified there. Do only put valid folders. Why would you do otherwise? Hope it
 all goes fine ;)
 
+![configuration](https://user-images.githubusercontent.com/12375343/85230298-218e1b80-b3e7-11ea-9fc2-14d7e85f6aed.PNG)
+
 Drive the extension with two commands:
 
 - Index design units
+  ![index](https://user-images.githubusercontent.com/12375343/85230305-24890c00-b3e7-11ea-9579-f655ec0b938e.PNG)
+
 - Find design unit
+  ![findunit](https://user-images.githubusercontent.com/12375343/85230303-22bf4880-b3e7-11ea-8974-3667929e08ee.PNG)
 
 **Enjoy!**
 
